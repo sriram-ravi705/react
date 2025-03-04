@@ -21,7 +21,7 @@ spec:
         io.kompose.service: reactapp
     spec:
       containers:
-        - image: sriramravi477/react:latest
+        - image: sriramravi477/react:1
           name: reactapp
           ports:
             - containerPort: 3000
