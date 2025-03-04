@@ -1,0 +1,6 @@
+services:
+  reactapp:
+    build: ./frontend
+    container_name: reactapp
+    ports:
+      - 3000:3000
