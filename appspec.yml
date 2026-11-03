@@ -1,0 +1,6 @@
+version: 0.0
+os: linux
+files:
+  - source: dist/
+    destination: /var/www/html/component-library
+file_exists_behavior: OVERWRITE
