@@ -1,0 +1,50 @@
+version: 0.2
+
+# Builds the component library demo site and packages it for CodeDeploy.
+# Output artifact (what the Deploy stage receives):
+#   appspec.yml        <- tells the CodeDeploy agent where to copy the files
+#   dist/              <- the static site (index.html, buttons/, assets/)
+
+env:
+  variables:
+    # URL path the site is served from; must match the appspec destination
+    # folder inside Apache's DocumentRoot. Use "/" when served from a domain root.
+    SITE_BASE: /component-library/
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 22
+
+  pre_build:
+    commands:
+      # Private packages from CodeArtifact (variables set by the infra template).
+      # Skipped when the domain isn't set, so public-only builds still work.
+      - |
+        if [ -n "$CODEARTIFACT_DOMAIN" ]; then
+          aws codeartifact login --tool npm --domain "$CODEARTIFACT_DOMAIN" \
+            --domain-owner "$CODEARTIFACT_DOMAIN_OWNER" --repository "$CODEARTIFACT_REPOSITORY"
+        fi
+      # Build-time settings (ENV_FILE_PATH = bucket/key, set by the infra template)
+      - |
+        if [ -n "$ENV_FILE_PATH" ]; then
+          aws s3 cp "s3://$ENV_FILE_PATH" .env
+        fi
+      - npm ci
+
+  build:
+    commands:
+      - npx vite build demo --base "$SITE_BASE" --outDir dist-demo --emptyOutDir
+
+  post_build:
+    commands:
+      # Package exactly what CodeDeploy needs: appspec.yml at the root + dist/
+      - rm -rf deploy && mkdir -p deploy
+      - cp appspec.yml deploy/
+      - cp -R demo/dist-demo deploy/dist
+      - find deploy -type f | sort
+
+artifacts:
+  base-directory: deploy
+  files:
+    - "**/*"
